@@ -10,6 +10,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "dotenv": "^17.2.3"
+    "cookie-parser": "^1.0.0",
+    "debug": "~2.6.9",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "microsoft-identity-express": "^1.0.0-beta",
+    "mongoose": "^8.19.2",
+    "morgan": "^1.10.1",
+    "msal-node-wrapper": "https://gitpkg.now.sh/kylethayer/ms-identity-javascript-nodejs-tutorial-msal-node-v2-/Common/msal-node-wrapper?main",
+    "node-fetch": "^3.3.2",
+    "node-html-parser": "^7.0.1"
   }
 }
