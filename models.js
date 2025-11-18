@@ -11,6 +11,7 @@
   // user
   const userSchema = new mongoose.Schema({
       username: String,
+      email: String,
       friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
       friend_requests: [{
           from: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
