@@ -87,4 +87,18 @@ app.get('/signout', (req, res, next) => {
   })(req, res, next);
 });
 
+app.get('/session', (req, res) => {
+  const isAuthenticated = typeof req.authContext?.isAuthenticated === 'function' ? req.authContext.isAuthenticated() : false
+  const account = isAuthenticated && typeof req.authContext.getAccount === 'function' ? req.authContext.getAccount() : null
+  res.json({
+    authenticated: isAuthenticated,
+    username: account?.username ?? account?.name ?? null
+  })
+})
+
+const PORT = process.env.PORT || 3000
+app.listen(PORT, () => {
+  console.log(`Server listening on ${PORT}`)
+})
+
 export default app;
