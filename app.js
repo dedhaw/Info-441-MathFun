@@ -6,19 +6,19 @@ import WebAppAuthProvider from 'msal-node-wrapper'
 import sessions from 'express-session';
 
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 dotenv.config();
 
-import activityRouter from './routes/controllers/activity.js';
-import gameRouter from './routes/controllers/game.js';
-import matchRouter from './routes/controllers/match.js';
+// import activityRouter from './routes/controllers/activity.js';
+// import gameRouter from './routes/controllers/game.js';
+// import matchRouter from './routes/controllers/match.js';
 import usersRouter from './routes/controllers/users.js';
 import models from './models.js';
 
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
 // vars
-
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 
 // use .env variables
@@ -66,9 +66,9 @@ app.use((req, res, next) =>{
 })
 // routing
 
-app.use('/activity', activityRouter);
-app.use('/game', gameRouter);
-app.use('/match', matchRouter);
+// app.use('/activity', activityRouter);
+// app.use('/game', gameRouter);
+// app.use('/match', matchRouter);
 app.use('/users', usersRouter);
 
 // auth
