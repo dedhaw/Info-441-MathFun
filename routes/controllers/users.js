@@ -1,150 +1,57 @@
 import express from 'express';
 import { model } from 'mongoose';
 
-var router = express.Router();
+const router = express.Router();
 
-async function getCurrentUser(req) {
-  if (!req.session.isAuthenticated) {
-    return null;
+router.get('/search', async (req, res) => {
+  const { username } = req.query
+  if (!username) {
+    return res.status(400).json({ error: 'username query required' })
   }
-  const email = req.session.account.username;
-  let foundUser = await model.User.findOne({ email: email });
-  return foundUser;
-}
-
-router.get('/friends', async (req, res) => {
   try {
-    if (req.session.isAuthenticated) {
-        res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    foundUser = await getCurrentUser(req)
-    if (!foundUser) {
-      res.status(404).json({ error: 'User not found' });
-    }
-    res.json({ friends: foundUser.friends });
-
-  } catch(error) {
-    res.status(500).json({ error: 'Internal server error' });
+    const users = await req.models.User.find({ username: { $regex: username, $options: 'i' } }).select('username')
+    res.json({ users })
+  } catch (err) {
+    res.status(500).json({ error: 'failed to search users' })
   }
 })
 
-router.get('/friend-requests', async (req, res) => {
-
+router.get('/:username/friends', async (req, res) => {
   try {
-    if (req.session.isAuthenticated) {
-        res.status(401).json({ error: 'Unauthorized' });
-      }
-
-    foundUser = await getCurrentUser(req)
-
-    if (!foundUser) {
-      res.status(404).json({ error: 'User not found' });
-    }
-
-    res.json({ friend_requests: foundUser.friend_requests });
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-})
-
-router.post('/send-friend-request', (req, res) => {
-  try {
-    if (!req.session.isAuthenticated) {
-      res.status(401).json({ error: 'Unauthorized' });
-    }
-    // check null
-    if (!recipent) {
-      res.status(400).json({ error: 'Recipent is required' });
-    }
-    // check if user exists
-    let foundRecipent = model.User.findOne({ _id: recipent })
-
-    if (!foundRecipent) {
-      res.status(404).json({ error: 'Recipent not found' });
-    }
-
-    // add friend request to recipent
-    foundRecipent.friend_requests.push({
-      from: req.user._id,
-      date: new Date(),
-    })
-
-    foundRecipent.save();
-    res.json({ message: 'Friend request sent' });
-
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-})
-
-router.post('/respond-friend-request', async (req, res) => {
-  try {
-    if (!req.session.isAuthenticated) {
-      res.status(401).json({ error: 'Unauthorized' });
-    }
-    const { requestId, accept } = req.body;
-
-    let foundUser = await getCurrentUser(req)
-    if (!foundUser) {
-      res.status(404).json({ error: 'User not found' });
-    }
-    // find friend request
-    const friendRequest = foundUser.friend_requests.id(requestId);
-    if (!friendRequest) {
-      res.status(404).json({ error: 'Friend request not found' });
-    }
-
-    if (accept) {
-
-      // get friend
-      const friend = await model.User.findById(friendRequest.from);
-      if (!friend) {
-        res.status(404).json({ error: 'sender not found' });
-      }
-
-      // add to eachothers friends list
-      foundUser.friends.push(friendRequest.from);
-      friend.friends.push(foundUser._id);
-
-      await friend.save();
-
-    } else {
-      // remove friend request
-      foundUser.friend_requests.id(requestId).remove();
-    }
-
-    await foundUser.save();
-
-    res.json({ message: 'Friend request responded to' });
-
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-})
-
-router.delete('/remove-friend', async (req, res) => {
-  try {
-    if (!req.session.isAuthenticated) {
-      res.status(401).json({ error: 'Unauthorized' });
-    }
-    const user = await getCurrentUser(req)
-    const friend = await model.User.findById(req.body.friendId);
+    const user = await req.models.User.findOne({ username: req.params.username }).populate('friends', 'username')
     if (!user) {
-      res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: 'user not found' })
     }
-    if (!friend) {
-      res.status(404).json({ error: 'Friend not found' });
-    }
+    res.json({ friends: user.friends.map(friend => ({ id: friend._id, username: friend.username })) })
+  } catch (err) {
+    res.status(500).json({ error: 'failed to fetch friends' })
+  }
+})
 
-    // remove eachother from friends list
-    user.friends.pull(friend._id);
-    friend.friends.pull(user._id);
-    await user.save();
-    await friend.save();
-    res.json({ message: 'Friend removed' });
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+router.post('/:username/friends', async (req, res) => {
+  const { friendUsername } = req.body
+  if (!friendUsername) {
+    return res.status(400).json({ error: 'friendUsername required' })
+  }
+  if (friendUsername === req.params.username) {
+    return res.status(400).json({ error: 'cannot friend yourself' })
+  }
+  try {
+    const [user, friend] = await Promise.all([
+      req.models.User.findOne({ username: req.params.username }),
+      req.models.User.findOne({ username: friendUsername })
+    ])
+    if (!user || !friend) {
+      return res.status(404).json({ error: 'user not found' })
+    }
+    await Promise.all([
+      req.models.User.updateOne({ _id: user._id }, { $addToSet: { friends: friend._id } }),
+      req.models.User.updateOne({ _id: friend._id }, { $addToSet: { friends: user._id } })
+    ])
+    const updated = await req.models.User.findById(user._id).populate('friends', 'username')
+    res.json({ friends: updated.friends.map(f => ({ id: f._id, username: f.username })) })
+  } catch (err) {
+    res.status(500).json({ error: 'failed to add friend' })
   }
 })
 
