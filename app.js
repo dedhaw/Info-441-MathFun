@@ -11,7 +11,7 @@ import { dirname } from 'path';
 dotenv.config();
 
 // import activityRouter from './routes/controllers/activity.js';
-// import gameRouter from './routes/controllers/game.js';
+import gameRouter from './routes/controllers/game.js';
 // import matchRouter from './routes/controllers/match.js';
 import usersRouter from './routes/controllers/users.js';
 import models from './models.js';
@@ -67,7 +67,7 @@ app.use((req, res, next) =>{
 // routing
 
 // app.use('/activity', activityRouter);
-// app.use('/game', gameRouter);
+app.use('/game', gameRouter);
 // app.use('/match', matchRouter);
 app.use('/users', usersRouter);
 

@@ -15,6 +15,7 @@
     "debug": "~2.6.9",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "express-ws": "^5.0.2",
     "microsoft-identity-express": "^1.0.0-beta",
     "mongoose": "^8.19.2",
     "morgan": "^1.10.1",
