@@ -18,6 +18,9 @@
       }],
       high_score: mongoose.Schema.Types.ObjectId,
       last_online: Date,
+      bg_color: String,
+      button_color: String,
+      text_color: String
   })
   models.User = mongoose.model('User', userSchema)
   console.log("created user model")

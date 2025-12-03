@@ -14,6 +14,21 @@
         <button id="refresh-session" type="button">Check Session</button>
       </div>
       <p id="user-info">Not signed in</p>
+      <div>
+        <h2>Configure theme</h2>
+        <label>
+          Background color
+          <input type="color" id="bg-color-picker" value="#ffffff">
+      </div>
+        <label>
+          Button color
+          <input type="color" id="button-color-picker" value="#008cba">
+        </label>
+        <label>
+          Text color
+          <input type="color" id="text-color-picker" value="#000000">
+        </label>
+        <button id="apply-theme" type="button" onclick="setTheme()">Apply Theme</button>
     </section>
     <section id="login-prompt">
       <p>Sign in to search users and manage friends.</p>

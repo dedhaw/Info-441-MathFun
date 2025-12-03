@@ -54,4 +54,24 @@ router.post('/:username/friends', async (req, res) => {
   }
 })
 
+router.get('/theme', async (req, res) => {
+  const username = req.query.username
+  if (!username) {
+    return res.status(400).json({ error: 'username query required' })
+  }
+  try {
+    const user = await req.models.User.findOne({ username })
+    if (!user) {
+      return res.status(404).json({ error: 'user not found' })
+    }
+    res.json({
+      bg_color: user.bg_color,
+      button_color: user.button_color,
+      text_color: user.text_color
+    })
+  } catch (err) {
+    res.status(500).json({ error: 'failed to fetch theme' })
+  }
+})
+
 export default router;
