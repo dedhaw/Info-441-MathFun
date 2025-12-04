@@ -7,7 +7,6 @@ let models = {}
 mongoose.connect(process.env.MONGOOSE_URI)
 console.log("connected to mongodb")
 
-
 // user
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true, trim: true },
@@ -25,7 +24,10 @@ const userSchema = new mongoose.Schema({
         total_games: { type: Number, default: 0 },
         total_score: { type: Number, default: 0 },
         total_wins: { type: Number, default: 0 }
-    }
+    },
+    bg_color: String,
+    button_color: String,
+    text_color: String
 }, { timestamps: true })
 models.User = mongoose.model('User', userSchema)
 console.log("created user model")

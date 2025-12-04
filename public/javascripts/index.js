@@ -60,6 +60,15 @@ const socketState = {
     pendingReject: null,
 };
 
+document.addEventListener('DOMContentLoaded', () => {
+  const applyBtn = document.getElementById('apply-theme');
+  if (applyBtn) {
+    applyBtn.addEventListener('click', () => {
+      setTheme();
+    });
+  }
+});
+
 function setFeedback(message = '', variant = 'info') {
     const classMap = {
         info: 'feedback-info',
@@ -736,6 +745,7 @@ const checkSession = async () => {
     updateAuthView(data.authenticated, data.username)
     writeStatus(data.authenticated ? 'Authenticated' : 'Sign in to continue')
     if (data.authenticated) {
+      sessionStorage.setItem('username', data.username)
       fetchFriends()
     }
     return data
@@ -752,4 +762,97 @@ if (sessionButton) {
   })
 }
 
+async function applyTheme() {
+
+  // get theme first
+  const theme = await getTheme()
+  if (!theme) {
+    return
+  }
+
+  // set pickers to be current theme
+  const bgPicker = document.getElementById('bg-color-picker');
+  const buttonPicker = document.getElementById('button-color-picker');
+  const textPicker = document.getElementById('text-color-picker');
+
+  if (bgPicker) {
+    bgPicker.value = theme.bg_color;
+  }
+  if (buttonPicker) {
+    buttonPicker.value = theme.button_color;
+  }
+  if (textPicker) {
+    textPicker.value = theme.text_color;
+  }
+
+  // set css variables
+
+  document.documentElement.style.setProperty('--bg', theme.bg_color);
+  document.documentElement.style.setProperty('--primary', theme.button_color);
+  document.documentElement.style.setProperty('--text', theme.text_color);
+}
+
+async function getTheme() {
+
+  // first check cache for existing theme
+  let theme = sessionStorage.getItem('theme')
+  if (!theme) {
+
+    // fetch from server
+    const username = sessionStorage.getItem('username')
+    if (!username) {
+      return
+    }
+    let theme = await fetch(`/users/theme?username=${encodeURIComponent(username)}`)
+    if (!theme) {
+      return
+    }
+
+    theme = await theme.json()
+
+    // cache found theme
+    sessionStorage.setItem('theme', JSON.stringify(theme))
+  }
+  return JSON.parse(theme)
+}
+
+async function setTheme() {
+  const username = sessionStorage.getItem('username')
+  if (!username) {
+    return
+  }
+
+  // get input values
+  const bgColor = document.getElementById('bg-color-picker').value
+  const buttonColor = document.getElementById('button-color-picker').value
+  const textColor = document.getElementById('text-color-picker').value
+
+  const theme = {
+    bg_color: bgColor,
+    button_color: buttonColor,
+    text_color: textColor
+  }
+
+  // save user theme
+  await fetch(`/users/theme`, {
+    method: 'POST',
+    headers: {  'Content-Type': 'application/json'  },
+    body: JSON.stringify({
+      username,
+      theme: {
+        bg_color: bgColor,
+        button_color: buttonColor,
+        text_color: textColor
+      }
+    })
+  })
+
+  // save to cache
+  sessionStorage.setItem('theme', JSON.stringify(theme))
+
+  // reapply theme after
+  applyTheme()
+}
+
 checkSession()
+applyTheme()

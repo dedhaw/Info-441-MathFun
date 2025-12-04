@@ -57,4 +57,76 @@ router.post('/:username/friends', async (req, res) => {
   }
 })
 
+router.get('/theme', async (req, res) => {
+  const username = req.query.username
+  if (!username) {
+    return res.status(400).json({ error: 'username query required' })
+  }
+  try {
+    const user = await req.models.User.findOne({ username })
+    if (!user) {
+      return res.status(404).json({ error: 'user not found' })
+    }
+    res.json({
+      bg_color: user.bg_color,
+      button_color: user.button_color,
+      text_color: user.text_color
+    })
+  } catch (err) {
+    res.status(500).json({ error: 'failed to fetch theme' })
+  }
+})
+
+router.post('/theme', async (req, res) => {
+  const isAuthenticated = typeof req.authContext?.isAuthenticated === 'function'
+    ? req.authContext.isAuthenticated()
+    : false;
+
+  if (!isAuthenticated) {
+    return res.status(401).json({ error: 'User not authenticated' });
+  }
+
+  const account = isAuthenticated && typeof req.authContext.getAccount === 'function' ? req.authContext.getAccount() : null
+
+  const accountUser =  account?.username ?? account?.name ?? null
+
+  const { username, theme } = req.body
+
+  if (!req.authContext.isAuthenticated()) {
+    return res.status(401).json({ error: 'User not authenticated' })
+  }
+
+  if (!username || !theme) {
+    return res.status(400).json({ error: 'username and theme required' })
+  }
+
+  try {
+    const user = await req.models.User.findOne({ username })
+    if (!user) {
+      return res.status(404).json({ error: 'user not found' })
+    }
+
+    if (user.email !== accountUser) {
+      return res.status(403).json({ error: 'You can only modify your own theme' })
+    }
+
+    user.bg_color = theme.bg_color
+    user.button_color = theme.button_color
+    user.text_color = theme.text_color
+    await user.save()
+
+    res.json({
+      success: true,
+      theme: {
+        bg_color: user.bg_color,
+        button_color: user.button_color,
+        text_color: user.text_color
+      }
+    })
+  } catch (error) {
+    res.status(500).json({ error: 'failed to set theme' });
+  }
+})
+
+
 export default router;

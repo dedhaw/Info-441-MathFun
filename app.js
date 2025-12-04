@@ -68,16 +68,17 @@ app.use((req, res, next) =>{
     req.models = models
     next()
 })
+
+// auth
+const authProvider = await WebAppAuthProvider.WebAppAuthProvider.initialize(authConfig);
+app.use(authProvider.authenticate());
+
 // routing
 
 // app.use('/activity', activityRouter);
 app.use('/game', gameRouter);
 // app.use('/match', matchRouter);
 app.use('/users', usersRouter);
-
-// auth
-const authProvider = await WebAppAuthProvider.WebAppAuthProvider.initialize(authConfig);
-app.use(authProvider.authenticate());
 
 // ensure logged-in users exist in DB
 app.use(async (req, _res, next) => {

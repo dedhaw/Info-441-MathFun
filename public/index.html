@@ -21,7 +21,11 @@
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      background: linear-gradient(180deg, #e8f0ff 0%, #ffffff 60%);
+      background: linear-gradient(
+        180deg,
+        var(--bg) 0%,
+        color-mix(in srgb, var(--bg) 70%, white) 100%
+      );
       min-height: 100vh;
     }
     main {
@@ -333,7 +337,21 @@
           </section>
         </section>
       </div>
-
+      <section class="card">
+        <h2>Configure theme</h2>
+        <label>
+          Background color
+          <input type="color" id="bg-color-picker" value="#ffffff">
+        <label>
+          Button color
+          <input type="color" id="button-color-picker" value="#008cba">
+        </label>
+        <label>
+          Text color
+          <input type="color" id="text-color-picker" value="#000000">
+        </label>
+        <button id="apply-theme" type="button">Apply Theme</button>
+      </section>
       <div class="col-side">
         <section class="card" id="leaderboard-card" data-auth-section hidden>
           <h2>Leaderboard</h2>
