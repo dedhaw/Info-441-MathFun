@@ -173,7 +173,6 @@
       <div class="nav-actions">
         <a id="signin-link" class="button primary" href="/signin">Sign In</a>
         <a id="signout-link" class="button" href="/signout">Sign Out</a>
-        <button id="refresh-session" type="button" class="button">Check Session</button>
       </div>
     </header>
 
@@ -196,12 +195,7 @@
           <span id="best-score-display">--</span>
         </div>
       </div>
-      <label for="username-input">Username</label>
-      <input
-        id="username-input"
-        placeholder="Enter a username to track your scores"
-        autocomplete="off"
-      />
+      <br>
       <button id="start-game-btn">Start 45-Second Sprint</button>
     </section>
 
@@ -248,10 +242,6 @@
         <h3>Your Friends</h3>
         <button id="refresh-friends" style="margin-top: 0.35rem;">Refresh Friends</button>
         <ul id="friends-list"></ul>
-      </section>
-      <section data-auth-section hidden>
-        <h3>Status</h3>
-        <pre id="status-log"></pre>
       </section>
     </section>
   </main>

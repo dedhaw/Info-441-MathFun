@@ -10,7 +10,6 @@ const elements = {
     score: document.getElementById('score-display'),
     accuracy: document.getElementById('accuracy-display'),
     bestScore: document.getElementById('best-score-display'),
-    usernameInput: document.getElementById('username-input'),
     startBtn: document.getElementById('start-game-btn'),
     problemCard: document.getElementById('problem-card'),
     summaryCard: document.getElementById('summary-card'),
@@ -34,6 +33,14 @@ const state = {
     attempts: 0,
     correct: 0,
     loadingProblem: false,
+    waitingForStart: false,
+};
+
+const socketState = {
+    ws: null,
+    ready: false,
+    pendingProblem: null,
+    pendingReject: null,
 };
 
 function setFeedback(message = '', variant = 'info') {
@@ -107,19 +114,15 @@ async function loadProblem() {
     if (state.loadingProblem) return;
     state.loadingProblem = true;
     try {
-        const response = await fetch(API.problem);
-        if (!response.ok) {
-            throw new Error('Failed to fetch problem');
-        }
-        const data = await response.json();
-        state.currentProblem = data;
-        elements.problemText.textContent = data.problem;
-        elements.answerInput.value = '';
-        elements.answerInput.focus();
-        setFeedback('New problem ready!', 'info');
+        await requestProblem();
     } catch (error) {
         console.error(error);
-        setFeedback('Unable to load a problem. Please try again.', 'error');
+        try {
+            await fetchHttpProblem();
+        } catch (err) {
+            console.error(err)
+            setFeedback('Unable to load a problem. Please try again.', 'error');
+        }
     } finally {
         state.loadingProblem = false;
     }
@@ -137,7 +140,6 @@ function startTimer() {
 }
 
 function toggleGameUI(active) {
-    state.gameActive = active;
     elements.problemCard.classList.toggle('hidden', !active);
     elements.summaryCard.classList.add('hidden');
     elements.answerInput.disabled = !active;
@@ -147,23 +149,32 @@ function toggleGameUI(active) {
 }
 
 async function startGame() {
-    const username = elements.usernameInput.value.trim();
-    if (!username) {
-        setFeedback('Enter a username first.', 'error');
+    if (!authState.authenticated || !authState.username) {
+        setFeedback('Sign in to start the game.', 'error');
         return;
     }
-    state.username = username;
+    state.username = authState.username;
     resetState();
     toggleGameUI(true);
-    await fetchHighScore(username);
-    await loadProblem();
-    if (!state.currentProblem) {
-        toggleGameUI(false);
-        return;
-    }
+    state.waitingForStart = true;
+    elements.problemText.textContent = 'Click in the answer box to begin.';
+    setFeedback('Click in the box to start your 45 seconds.', 'info');
+    await fetchHighScore(state.username);
+}
+
+async function beginRoundIfWaiting() {
+    if (!state.waitingForStart) return;
+    state.waitingForStart = false;
     state.gameActive = true;
     setFeedback('Go time! Answer as fast as you can.', 'info');
+    elements.problemText.textContent = 'Loading problem...';
     startTimer();
+    try {
+        await loadProblem();
+    } catch (err) {
+        console.error(err);
+        endGame('Could not start the game. Please try again.');
+    }
 }
 
 function showSummary(message) {
@@ -174,6 +185,29 @@ function showSummary(message) {
         : 0;
     elements.summaryAccuracy.textContent = `Accuracy: ${accuracy}%`;
     elements.summaryCard.querySelector('h2').textContent = message;
+}
+
+function handleIncomingProblem(data) {
+    if (!data) return
+    state.currentProblem = data
+    elements.problemText.textContent = data.problem
+    elements.answerInput.value = ''
+    elements.answerInput.focus()
+    setFeedback('New problem ready!', 'info')
+    if (socketState.pendingProblem) {
+        socketState.pendingProblem()
+        socketState.pendingProblem = null
+        socketState.pendingReject = null
+    }
+}
+
+async function fetchHttpProblem() {
+    const response = await fetch('/game/problem')
+    if (!response.ok) {
+        throw new Error('HTTP problem fetch failed')
+    }
+    const data = await response.json()
+    handleIncomingProblem(data)
 }
 
 async function submitScore() {
@@ -249,9 +283,76 @@ function handleAnswerKey(event) {
     }
 }
 
+function ensureSocket() {
+    if (socketState.ready && socketState.ws?.readyState === WebSocket.OPEN) {
+        return Promise.resolve(socketState.ws)
+    }
+    return new Promise((resolve, reject) => {
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+        const ws = new WebSocket(`${protocol}://${window.location.host}/ws?username=${encodeURIComponent(authState.username || 'guest')}`)
+        socketState.ws = ws
+
+        const cleanup = () => {
+            ws.removeEventListener('open', onOpen)
+            ws.removeEventListener('error', onError)
+        }
+
+        const onOpen = () => {
+            socketState.ready = true
+            cleanup()
+            resolve(ws)
+        }
+        const onError = (err) => {
+            socketState.ready = false
+            cleanup()
+            reject(err)
+        }
+
+        ws.addEventListener('open', onOpen)
+        ws.addEventListener('error', onError)
+
+        ws.addEventListener('close', () => {
+            socketState.ready = false
+        })
+
+        ws.addEventListener('message', (event) => {
+            try {
+                const msg = JSON.parse(event.data)
+                if (msg.type === 'problem' && msg.payload) {
+                    handleIncomingProblem(msg.payload)
+                }
+            } catch (err) {
+                console.error('bad ws message', err)
+            }
+        })
+    })
+}
+
+function requestProblem() {
+    return new Promise(async (resolve, reject) => {
+        try {
+            await ensureSocket()
+            socketState.pendingProblem = resolve
+            socketState.pendingReject = reject
+            socketState.ws.send(JSON.stringify({ type: 'problem_request' }))
+            setTimeout(() => {
+                if (socketState.pendingProblem === resolve) {
+                    socketState.pendingProblem = null
+                    socketState.pendingReject = null
+                    reject(new Error('Timed out waiting for problem'))
+                }
+            }, 5000)
+        } catch (err) {
+            reject(err)
+        }
+    })
+}
+
 elements.startBtn.addEventListener('click', startGame);
 elements.submitBtn.addEventListener('click', processAnswer);
 elements.answerInput.addEventListener('keydown', handleAnswerKey);
+elements.answerInput.addEventListener('focus', beginRoundIfWaiting);
+elements.answerInput.addEventListener('click', beginRoundIfWaiting);
 elements.skipBtn.addEventListener('click', skipProblem);
 elements.playAgainBtn.addEventListener('click', () => {
     elements.summaryCard.classList.add('hidden');
@@ -418,6 +519,10 @@ const updateAuthView = (authenticated, username) => {
   if (!authenticated) {
     renderSearchResults([])
     renderFriends([])
+    state.username = ''
+  } else {
+    state.username = username || ''
+    fetchHighScore(state.username)
   }
 }
 
