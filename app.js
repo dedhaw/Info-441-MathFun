@@ -125,7 +125,6 @@ app.get('/signout', (req, res, next) => {
 
 app.get('/session', (req, res) => {
   const isAuthenticated = typeof req.authContext?.isAuthenticated === 'function' ? req.authContext.isAuthenticated() : false
-  console.log(isAuthenticated)
   const account = isAuthenticated && typeof req.authContext.getAccount === 'function' ? req.authContext.getAccount() : null
   res.json({
     authenticated: isAuthenticated,

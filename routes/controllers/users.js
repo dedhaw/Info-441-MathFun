@@ -82,8 +82,6 @@ router.post('/theme', async (req, res) => {
     ? req.authContext.isAuthenticated()
     : false;
 
-  console.log(req.authContext)
-
   if (!isAuthenticated) {
     return res.status(401).json({ error: 'User not authenticated' });
   }

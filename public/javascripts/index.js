@@ -593,7 +593,6 @@ const updateAuthView = (authenticated, username) => {
 }
 
 const checkSession = async () => {
-  console.log('hi')
   try {
     const response = await fetch('/session', { credentials: 'include' })
     if (!response.ok) {
@@ -691,7 +690,6 @@ async function setTheme() {
     text_color: textColor
   }
 
-  console.log(theme)
   // save user theme
   await fetch(`/users/theme`, {
     method: 'POST',
@@ -710,7 +708,6 @@ async function setTheme() {
   sessionStorage.setItem('theme', JSON.stringify(theme))
 
   // reapply theme after
-  console.log('reapply')
   applyTheme()
 }
 
