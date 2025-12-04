@@ -121,7 +121,14 @@ async function fetchLeaderboard() {
         if (!response.ok) throw new Error('Failed to fetch leaderboard');
         const data = await response.json();
         elements.leaderboardList.innerHTML = data.leaderboard
-            .map(u => `<li>${u.rank}. ${u.username}: ${u.high_score}</li>`)
+            .map(u => {
+                const name = u.username.length > 22 ? `${u.username.slice(0, 19)}...` : u.username
+                return `<li class="leaderboard-item">
+                    <span class="leaderboard-rank">${u.rank}</span>
+                    <span class="leaderboard-name truncate" title="${u.username}">${name}</span>
+                    <span class="leaderboard-score">${u.high_score}</span>
+                </li>`;
+            })
             .join('');
     } catch (error) {
         console.error(error);
@@ -178,7 +185,10 @@ async function startGame() {
     state.waitingForStart = true;
     elements.problemText.textContent = 'Click in the answer box to begin.';
     setFeedback('Click in the box to start your 45 seconds.', 'info');
-    await fetchHighScore(state.username);
+    await Promise.all([
+        fetchHighScore(state.username),
+        fetchLeaderboard()
+    ]);
 }
 
 async function beginRoundIfWaiting() {
@@ -569,6 +579,7 @@ const updateAuthView = (authenticated, username) => {
   } else {
     state.username = username || ''
     fetchHighScore(state.username)
+    fetchLeaderboard()
   }
 }
 
