@@ -201,6 +201,41 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+      .sticker-bar {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        margin-top: 0.75rem;
+        justify-content: center;
+      }
+      .sticker-bar img {
+        width: 56px;
+        height: 56px;
+        object-fit: contain;
+        cursor: pointer;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        transition: transform 0.1s ease, box-shadow 0.2s ease;
+        animation-play-state: paused;
+      }
+      .sticker-bar img:hover {
+        transform: scale(1.06);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+        animation-play-state: running;
+      }
+    .float-sticker {
+      position: fixed;
+      pointer-events: none;
+      animation: floatAway 1.2s ease-out forwards;
+      z-index: 1000;
+      width: 80px;
+      height: 80px;
+    }
+    @keyframes floatAway {
+      0% { transform: translate(0, 0) scale(1); opacity: 1; }
+      50% { transform: translate(-20px, -60px) scale(1.05); opacity: 0.85; }
+      100% { transform: translate(40px, -140px) scale(1.1); opacity: 0; }
+    }
     .layout {
       display: grid;
       grid-template-columns: 2fr 1fr;
@@ -261,9 +296,11 @@
             />
             <button id="submit-answer-btn">Submit</button>
           </div>
-          <p id="feedback"></p>
-          <button id="skip-problem-btn">Skip Problem</button>
-        </section>
+      <p id="feedback"></p>
+      <button id="skip-problem-btn">Skip Problem</button>
+          <div id="sticker-bar" class="sticker-bar" data-auth-section hidden>
+          </div>
+    </section>
 
         <section id="summary-card" class="card hidden">
           <h2>Round summary</h2>

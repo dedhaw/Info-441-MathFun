@@ -1,3 +1,4 @@
+import { createStickerManager } from './stickers.js';
 const TIMER_DURATION = 45;
 const API = {
     problem: '/game/problem',
@@ -27,6 +28,7 @@ const elements = {
     totalScore: document.getElementById('total-score'),
     totalWins: document.getElementById('total-wins'),
     leaderboardList: document.getElementById('leaderboard-list'),
+    stickerBar: document.getElementById('sticker-bar'),
 };
 
 const state = {
@@ -47,6 +49,9 @@ const state = {
     countdownInterval: null,
     prepCountdown: 3,
 };
+
+let renderStickers = () => {};
+let receiveSticker = () => {};
 
 const socketState = {
     ws: null,
@@ -199,6 +204,7 @@ async function startGame() {
         fetchHighScore(state.username),
         fetchLeaderboard()
     ]);
+    renderStickers();
 }
 
 async function beginRoundIfWaiting() {
@@ -209,6 +215,16 @@ async function beginRoundIfWaiting() {
     }
     state.waitingForStart = false;
     startRoundNow();
+}
+
+function startRoundNow() {
+    state.waitingForStart = false;
+    state.gameActive = true;
+    state.timer = TIMER_DURATION;
+    elements.timer.textContent = `${state.timer}s`;
+    elements.problemText.textContent = 'Loading problem...';
+    startTimer();
+    loadProblem();
 }
 
 function showSummary(message) {
@@ -377,27 +393,36 @@ function ensureSocket() {
             socketState.ready = false
         })
 
-        if (!ws._listenersBound) {
-            ws.addEventListener('message', (event) => {
-                try {
-                    const msg = JSON.parse(event.data)
-                    if (msg.type === 'problem' && msg.payload) {
-                        handleIncomingProblem(msg.payload)
-                    } else if (msg.type === 'challenge' && msg.payload?.from) {
-                        handleIncomingChallenge(msg.payload.from)
-                    } else if (msg.type === 'challenge_response' && msg.payload) {
-                        handleChallengeResponse(msg.payload)
-                    } else if (msg.type === 'error' && msg.payload?.message) {
-                        setFeedback(msg.payload.message, 'error')
-                    }
-                } catch (err) {
-                    console.error('bad ws message', err)
+        ws.addEventListener('message', (event) => {
+            try {
+                const msg = JSON.parse(event.data)
+                if (msg.type === 'problem' && msg.payload) {
+                    handleIncomingProblem(msg.payload)
+                } else if (msg.type === 'challenge' && msg.payload?.from) {
+                    handleIncomingChallenge(msg.payload.from)
+                } else if (msg.type === 'challenge_response' && msg.payload) {
+                    handleChallengeResponse(msg.payload)
+                } else if (msg.type === 'sticker' && msg.payload) {
+                    receiveSticker(msg.payload)
+                } else if (msg.type === 'ready' && msg.payload?.from) {
+                    handleReady(msg.payload.from)
+                } else if (msg.type === 'error' && msg.payload?.message) {
+                    setFeedback(msg.payload.message, 'error')
                 }
-            })
-            ws._listenersBound = true
-        }
+            } catch (err) {
+                console.error('bad ws message', err)
+            }
+        })
     })
 }
+
+({ renderStickers, receiveSticker } = createStickerManager({
+    elements,
+    getState: () => state,
+    getAuthState: () => authState,
+    ensureSocket,
+    setFeedback
+}));
 
 function requestProblem() {
     return new Promise(async (resolve, reject) => {
@@ -472,6 +497,7 @@ function handleIncomingChallenge(fromUser) {
         elements.problemText.textContent = 'Loading problem...'
         startTimer()
         loadProblem()
+        renderStickers()
     } else {
         setFeedback(`Declined challenge from ${fromUser}`, 'error')
     }
@@ -488,6 +514,7 @@ function handleChallengeResponse(payload) {
         elements.problemText.textContent = 'Loading problem...'
         startTimer()
         loadProblem()
+        renderStickers()
     } else {
         setFeedback(`${payload.from} declined your challenge.`, 'error')
     }
@@ -508,6 +535,7 @@ async function sendChallenge() {
         state.opponentUsername = friend
         state.selfReady = false
         state.opponentReady = false
+        renderStickers()
     } catch (err) {
         setFeedback('Could not send challenge.', 'error')
     }
@@ -695,6 +723,7 @@ const updateAuthView = (authenticated, username) => {
     fetchLeaderboard()
     ensureSocket().catch(() => {})
   }
+  renderStickers()
 }
 
 const checkSession = async () => {

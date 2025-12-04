@@ -54,6 +54,13 @@ export function setupWebsocket(server, models) {
           } else {
             ws.send(JSON.stringify({ type: 'error', payload: { message: 'friend not online' } }))
           }
+        } else if (msg.type === 'sticker' && msg.payload?.to && msg.payload?.src) {
+          const target = clients.get(msg.payload.to)
+          if (target) {
+            target.send(JSON.stringify({ type: 'sticker', payload: { from: ws.username, src: msg.payload.src } }))
+          } else {
+            ws.send(JSON.stringify({ type: 'error', payload: { message: 'friend not online' } }))
+          }
         }
       } catch (err) {
         ws.send(JSON.stringify({ type: 'error', payload: { message: 'invalid message' } }))
