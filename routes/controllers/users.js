@@ -43,6 +43,9 @@ router.post('/:username/friends', async (req, res) => {
     if (!user || !friend) {
       return res.status(404).json({ error: 'user not found' })
     }
+    if (String(user._id) === String(friend._id)) {
+      return res.status(400).json({ error: 'cannot friend yourself' })
+    }
     await Promise.all([
       req.models.User.updateOne({ _id: user._id }, { $addToSet: { friends: friend._id } }),
       req.models.User.updateOne({ _id: friend._id }, { $addToSet: { friends: user._id } })

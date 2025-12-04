@@ -1,259 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>MathFun Sprint</title>
-    <style>
-      :root {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        color: #0f172a;
-        background-color: #f8fafc;
-      }
-
-      body {
-        margin: 0;
-        min-height: 100vh;
-        background: linear-gradient(180deg, #e0f2fe 0%, #ffffff 60%);
-      }
-
-      main {
-        max-width: 640px;
-        margin: 0 auto;
-        padding: 2.5rem 1.5rem 4rem;
-      }
-
-      h1 {
-        text-align: center;
-        font-size: 2.5rem;
-        margin-bottom: 0.25rem;
-      }
-
-      p.subtitle {
-        text-align: center;
-        margin-top: 0;
-        color: #475569;
-      }
-
-      .card {
-        background: white;
-        border-radius: 16px;
-        padding: 1.75rem;
-        margin-top: 1.25rem;
-        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
-      }
-
-      .status-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 1rem;
-        text-align: center;
-      }
-
-      .status-grid div {
-        background: #eff6ff;
-        border-radius: 12px;
-        padding: 0.85rem;
-        font-size: 0.9rem;
-        color: #1e3a8a;
-      }
-
-      .status-grid span {
-        display: block;
-        font-size: 1.75rem;
-        font-weight: 700;
-        color: #0f172a;
-      }
-
-      label {
-        display: block;
-        margin-bottom: 0.25rem;
-        font-weight: 600;
-      }
-
-      input {
-        width: 100%;
-        padding: 0.75rem 0.9rem;
-        font-size: 1rem;
-        border-radius: 10px;
-        border: 1px solid #cbd5f5;
-        margin-bottom: 1rem;
-      }
-
-      button {
-        width: 100%;
-        padding: 0.85rem 1rem;
-        border-radius: 12px;
-        border: none;
-        font-size: 1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: 0.15s ease;
-        background: #2563eb;
-        color: white;
-      }
-
-      button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      #problem-card {
-        text-align: center;
-      }
-
-      #problem-text {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin: 1rem 0;
-      }
-
-      .flex-row {
-        display: flex;
-        gap: 0.75rem;
-      }
-
-      .flex-row button {
-        width: auto;
-        padding: 0 1.5rem;
-      }
-
-      #feedback {
-        min-height: 1.25rem;
-        margin-top: 0.75rem;
-        text-align: center;
-        font-weight: 600;
-      }
-
-      .feedback-success {
-        color: #16a34a;
-      }
-
-      .feedback-error {
-        color: #dc2626;
-      }
-
-      .feedback-info {
-        color: #2563eb;
-      }
-
-      #summary {
-        margin-top: 1rem;
-        text-align: center;
-      }
-
-      .hidden {
-        display: none;
-      }
-    </style>
-    <script src="javascripts/index.js" type="module" defer></script>
-  </head>
-  <body>
-    <main>
-      <h1>MathFun Sprint</h1>
-      <p class="subtitle">Answer as many questions as you can in 45 seconds.</p>
-
-      <section class="card">
-        <div class="status-grid">
-          <div>
-            Timer
-            <span id="timer-display">45s</span>
-          </div>
-          <div>
-            Score
-            <span id="score-display">0</span>
-          </div>
-          <div>
-            Accuracy
-            <span id="accuracy-display">0%</span>
-          </div>
-          <div>
-            Best Score
-            <span id="best-score-display">--</span>
-          </div>
-        </div>
-        <label for="username-input">Username</label>
-        <input
-          id="username-input"
-          placeholder="Enter a username to track your scores"
-          autocomplete="off"
-        />
-        <button id="start-game-btn">Start 45-Second Sprint</button>
-      </section>
-
-      <section id="problem-card" class="card hidden">
-        <p id="problem-text">Press start to get your first question.</p>
-        <div class="flex-row">
-          <input
-            id="answer-input"
-            type="number"
-            placeholder="Enter answer"
-            autocomplete="off"
-          />
-          <button id="submit-answer-btn">Submit</button>
-        </div>
-        <p id="feedback"></p>
-        <button id="skip-problem-btn">Skip Problem</button>
-      </section>
-
-      <section id="summary-card" class="card hidden">
-        <h2>Round summary</h2>
-        <p id="round-score"></p>
-        <p id="round-accuracy"></p>
-        <button id="play-again-btn">Play Again</button>
-      </section>
-    </main>
-  </body>
-<html>
 <head>
-  <title>MathFun</title>
-  <link rel="stylesheet" href="/stylesheets/style.css">
-  <script defer src="javascripts/index.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MathFun Sprint</title>
+  <style>
+    :root {
+      --bg: #f7f9fc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #475569;
+      --primary: #2563eb;
+      --success: #16a34a;
+      --error: #dc2626;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #e8f0ff 0%, #ffffff 60%);
+      min-height: 100vh;
+    }
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 3rem;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: 2.25rem;
+      letter-spacing: -0.02em;
+    }
+    .nav-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    a.button, button.button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.6rem 0.9rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s ease;
+    }
+    a.button.primary, button.button.primary {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    a.button:hover, button.button:hover { transform: translateY(-1px); }
+    p.subtitle {
+      margin: 0 0 1rem 0;
+      color: var(--muted);
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+      margin-top: 1rem;
+    }
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.75rem;
+      text-align: center;
+    }
+    .status-grid div {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 0.85rem;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+    .status-grid span {
+      display: block;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 0.15rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-weight: 600;
+    }
+    input {
+      width: 100%;
+      padding: 0.75rem 0.9rem;
+      font-size: 1rem;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      margin-bottom: 1rem;
+    }
+    button {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s ease;
+      background: var(--primary);
+      color: white;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #problem-card { text-align: center; }
+    #problem-text {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin: 1rem 0;
+    }
+    .flex-row { display: flex; gap: 0.75rem; }
+    .flex-row button { width: auto; padding: 0 1.35rem; }
+    #feedback {
+      min-height: 1.25rem;
+      margin-top: 0.75rem;
+      text-align: center;
+      font-weight: 600;
+    }
+    .feedback-success { color: var(--success); }
+    .feedback-error { color: var(--error); }
+    .feedback-info { color: var(--primary); }
+    .hidden { display: none; }
+    ul {
+      padding-left: 1rem;
+    }
+    pre {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 0.75rem;
+      border-radius: 10px;
+    }
+    @media (max-width: 640px) {
+      header { flex-direction: column; align-items: flex-start; }
+      .flex-row { flex-direction: column; }
+      .flex-row button { width: 100%; }
+    }
+  </style>
+  <script src="javascripts/index.js" type="module" defer></script>
 </head>
 <body>
   <main>
-    <section>
-      <h1>MathFun Friends</h1>
+    <header>
       <div>
-        <a href="/signin">Sign In</a>
-        <a href="/signout">Sign Out</a>
-        <button id="refresh-session" type="button">Check Session</button>
+        <h1>MathFun Sprint</h1>
+        <p class="subtitle">Answer as many questions as you can in 45 seconds.</p>
       </div>
+      <div class="nav-actions">
+        <a id="signin-link" class="button primary" href="/signin">Sign In</a>
+        <a id="signout-link" class="button" href="/signout">Sign Out</a>
+        <button id="refresh-session" type="button" class="button">Check Session</button>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="status-grid">
+        <div>
+          Timer
+          <span id="timer-display">45s</span>
+        </div>
+        <div>
+          Score
+          <span id="score-display">0</span>
+        </div>
+        <div>
+          Accuracy
+          <span id="accuracy-display">0%</span>
+        </div>
+        <div>
+          Best Score
+          <span id="best-score-display">--</span>
+        </div>
+      </div>
+      <label for="username-input">Username</label>
+      <input
+        id="username-input"
+        placeholder="Enter a username to track your scores"
+        autocomplete="off"
+      />
+      <button id="start-game-btn">Start 45-Second Sprint</button>
+    </section>
+
+    <section id="problem-card" class="card hidden">
+      <p id="problem-text">Press start to get your first question.</p>
+      <div class="flex-row">
+        <input
+          id="answer-input"
+          type="number"
+          placeholder="Enter answer"
+          autocomplete="off"
+        />
+        <button id="submit-answer-btn">Submit</button>
+      </div>
+      <p id="feedback"></p>
+      <button id="skip-problem-btn">Skip Problem</button>
+    </section>
+
+    <section id="summary-card" class="card hidden">
+      <h2>Round summary</h2>
+      <p id="round-score"></p>
+      <p id="round-accuracy"></p>
+      <button id="play-again-btn">Play Again</button>
+    </section>
+
+    <section class="card">
+      <h2>MathFun Friends</h2>
       <p id="user-info">Not signed in</p>
-    </section>
-    <section id="login-prompt">
-      <p>Sign in to search users and manage friends.</p>
-    </section>
-    <section data-auth-section hidden>
-      <h2>Search Users</h2>
-      <form id="search-form">
-        <label>
-          Username search
-          <input type="text" id="search-input" required>
-        </label>
-        <button type="submit">Search</button>
-      </form>
-      <ul id="search-results"></ul>
-    </section>
-    <section data-auth-section hidden>
-      <h2>Manage Friends</h2>
-      <form id="friends-form">
-        <label>
-          Your username
-          <input type="text" id="self-username" required>
-        </label>
-        <label>
-          Friend username
-          <input type="text" id="friend-username" required>
-        </label>
-        <button type="submit">Add Friend</button>
-      </form>
-      <button id="refresh-friends">Refresh Friends</button>
-      <ul id="friends-list"></ul>
-    </section>
-    <section data-auth-section hidden>
-      <h2>Status</h2>
-      <pre id="status-log"></pre>
+      <section id="login-prompt">
+        <p>Sign in to search users and manage friends.</p>
+      </section>
+      <section data-auth-section hidden>
+        <h3>Search Users</h3>
+        <form id="search-form">
+          <label>
+            Username search
+            <input type="text" id="search-input" required>
+          </label>
+          <button type="submit">Search</button>
+        </form>
+        <ul id="search-results"></ul>
+      </section>
+      <section data-auth-section hidden>
+        <h3>Your Friends</h3>
+        <button id="refresh-friends" style="margin-top: 0.35rem;">Refresh Friends</button>
+        <ul id="friends-list"></ul>
+      </section>
+      <section data-auth-section hidden>
+        <h3>Status</h3>
+        <pre id="status-log"></pre>
+      </section>
     </section>
   </main>
 </body>

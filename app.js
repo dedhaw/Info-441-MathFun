@@ -20,12 +20,13 @@ import models from './models.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const tenantId = 'common';
 
 // use .env variables
 const authConfig = {
     auth: {
         clientId: process.env.CLIENT_ID,
-        authority: `https://login.microsoftonline.com/${process.env.TENANT_ID}`,
+        authority: `https://login.microsoftonline.com/${tenantId}`,
         clientSecret: process.env.CLIENT_SECRET,
         redirectUri: "/redirect",
     },
@@ -74,6 +75,37 @@ app.use('/users', usersRouter);
 // auth
 const authProvider = await WebAppAuthProvider.WebAppAuthProvider.initialize(authConfig);
 app.use(authProvider.authenticate());
+
+// ensure logged-in users exist in DB
+app.use(async (req, _res, next) => {
+  try {
+    const isAuthenticated = typeof req.authContext?.isAuthenticated === 'function' ? req.authContext.isAuthenticated() : false
+    if (!isAuthenticated || typeof req.authContext.getAccount !== 'function') {
+      return next()
+    }
+    const account = req.authContext.getAccount()
+    const authId = account?.homeAccountId || account?.localAccountId || null
+    const username = account?.username || account?.name || null
+    if (!username) {
+      return next()
+    }
+    const update = {
+      username,
+      authId,
+      displayName: account?.name || username,
+      email: account?.username || undefined,
+      last_online: new Date()
+    }
+    await req.models.User.findOneAndUpdate(
+      { $or: [{ authId }, { username }] },
+      { $set: update },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    )
+  } catch (err) {
+    console.error('user sync failed', err)
+  }
+  next()
+});
 
 app.get('/signin', (req, res, next) => {
   return req.authContext.login({

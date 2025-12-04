@@ -263,13 +263,12 @@ const authSections = document.querySelectorAll('[data-auth-section]')
 const loginPrompt = document.getElementById('login-prompt')
 const userInfo = document.getElementById('user-info')
 const sessionButton = document.getElementById('refresh-session')
+const signInLink = document.getElementById('signin-link')
+const signOutLink = document.getElementById('signout-link')
 const statusLog = document.getElementById('status-log')
 const searchForm = document.getElementById('search-form')
 const searchInput = document.getElementById('search-input')
 const searchResults = document.getElementById('search-results')
-const friendsForm = document.getElementById('friends-form')
-const selfInput = document.getElementById('self-username')
-const friendInput = document.getElementById('friend-username')
 const friendsList = document.getElementById('friends-list')
 const refreshFriendsButton = document.getElementById('refresh-friends')
 let authState = { authenticated: false, username: null }
@@ -281,29 +280,47 @@ const writeStatus = (message) => {
   }
 }
 
-const renderList = (container, items) => {
-  if (!container) {
-    return
-  }
-  container.innerHTML = ''
+const renderFriends = (items) => {
+  if (!friendsList) return
+  friendsList.innerHTML = ''
   items.forEach((item) => {
     const li = document.createElement('li')
     li.textContent = item
-    container.appendChild(li)
+    friendsList.appendChild(li)
+  })
+}
+
+const renderSearchResults = (users) => {
+  if (!searchResults) return
+  searchResults.innerHTML = ''
+  users.forEach((user) => {
+    const li = document.createElement('li')
+    li.style.display = 'flex'
+    li.style.alignItems = 'center'
+    li.style.justifyContent = 'space-between'
+    const name = document.createElement('span')
+    name.textContent = user.username
+    const addBtn = document.createElement('button')
+    addBtn.textContent = 'Add Friend'
+    addBtn.type = 'button'
+    addBtn.dataset.username = user.username
+    li.appendChild(name)
+    li.appendChild(addBtn)
+    searchResults.appendChild(li)
   })
 }
 
 const fetchFriends = async () => {
-  if (!selfInput || !friendsList) {
+  if (!friendsList) {
     return
   }
   if (!authState.authenticated) {
     writeStatus('Sign in to view friends')
     return
   }
-  const username = selfInput.value.trim()
+  const username = authState.username
   if (!username) {
-    writeStatus('Enter your username to load friends')
+    writeStatus('Missing username')
     return
   }
   try {
@@ -314,7 +331,7 @@ const fetchFriends = async () => {
       throw new Error('Unable to fetch friends')
     }
     const data = await response.json()
-    renderList(friendsList, data.friends.map((friend) => friend.username))
+    renderFriends(data.friends.map((friend) => friend.username))
     writeStatus(`Loaded ${data.friends.length} friends`)
   } catch (err) {
     writeStatus(err.message)
@@ -324,10 +341,6 @@ const fetchFriends = async () => {
 if (searchForm && searchInput) {
   searchForm.addEventListener('submit', async (event) => {
     event.preventDefault()
-    if (!authState.authenticated) {
-      writeStatus('Sign in to search users')
-      return
-    }
     const query = searchInput.value.trim()
     if (!query) {
       writeStatus('Enter a username to search')
@@ -341,7 +354,7 @@ if (searchForm && searchInput) {
         throw new Error('Search failed')
       }
       const data = await response.json()
-      renderList(searchResults, data.users.map((user) => user.username))
+      renderSearchResults(data.users || [])
       writeStatus(`Found ${data.users.length} user(s)`)
     } catch (err) {
       writeStatus(err.message)
@@ -349,25 +362,20 @@ if (searchForm && searchInput) {
   })
 }
 
-if (friendsForm && selfInput && friendInput) {
-  friendsForm.addEventListener('submit', async (event) => {
-    event.preventDefault()
+if (searchResults) {
+  searchResults.addEventListener('click', async (event) => {
+    if (!(event.target instanceof HTMLButtonElement)) return
+    const friendUsername = event.target.dataset.username
+    if (!friendUsername) return
     if (!authState.authenticated) {
       writeStatus('Sign in to add friends')
       return
     }
-    const username = selfInput.value.trim()
-    const friendUsername = friendInput.value.trim()
-    if (!username || !friendUsername) {
-      writeStatus('Enter both usernames')
-      return
-    }
+    const username = authState.username
     try {
       const response = await fetch(`/users/${encodeURIComponent(username)}/friends`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ friendUsername })
       })
@@ -376,8 +384,8 @@ if (friendsForm && selfInput && friendInput) {
         throw new Error(errorData.error || 'Failed to add friend')
       }
       const data = await response.json()
-      renderList(friendsList, data.friends.map((friend) => friend.username))
-      writeStatus('Friend added')
+      renderFriends(data.friends.map((friend) => friend.username))
+      writeStatus(`Added ${friendUsername}`)
     } catch (err) {
       writeStatus(err.message)
     }
@@ -401,11 +409,15 @@ const updateAuthView = (authenticated, username) => {
   if (userInfo) {
     userInfo.textContent = authenticated ? `Signed in as ${username || 'Unknown user'}` : 'Not signed in'
   }
+  if (signInLink) {
+    signInLink.style.display = authenticated ? 'none' : 'inline-flex'
+  }
+  if (signOutLink) {
+    signOutLink.style.display = authenticated ? 'inline-flex' : 'none'
+  }
   if (!authenticated) {
-    renderList(searchResults, [])
-    renderList(friendsList, [])
-  } else if (username && selfInput && !selfInput.value) {
-    selfInput.value = username
+    renderSearchResults([])
+    renderFriends([])
   }
 }
 

@@ -11,6 +11,9 @@ console.log("connected to mongodb")
 // user
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true, trim: true },
+    authId: { type: String, unique: true, sparse: true },
+    displayName: { type: String, trim: true },
+    email: { type: String, trim: true },
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     friend_requests: [{
         from: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
