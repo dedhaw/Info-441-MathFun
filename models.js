@@ -1,43 +1,43 @@
-  import mongoose from "mongoose";
-  import dotenv from 'dotenv';
-  dotenv.config();
+import mongoose from "mongoose";
+import dotenv from 'dotenv';
+dotenv.config();
 
-  let models = {}
+let models = {}
 
-  mongoose.connect(process.env.MONGOOSE_URI)
-  console.log("connected to mongodb")
-
-
-  // user
-  const userSchema = new mongoose.Schema({
-      username: String,
-      friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-      friend_requests: [{
-          from: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-          date: Date
-      }],
-      high_score: mongoose.Schema.Types.ObjectId,
-      last_online: Date,
-  })
-  models.User = mongoose.model('User', userSchema)
-  console.log("created user model")
-
-  // scores
-  const scoresSchema = new mongoose.Schema({
-      username: String,
-      score: Number,
-      date: Date,
-  })
-  models.Scores = mongoose.model('Scores', scoresSchema)
-  console.log("created scores model")
+mongoose.connect(process.env.MONGOOSE_URI)
+console.log("connected to mongodb")
 
 
-  // math problems
-  const mathProblemSchema = new mongoose.Schema({
-      problem: String,
-      answer: Number,
-  })
-  models.MathProblem = mongoose.model('MathProblem', mathProblemSchema)
-  console.log("created math problem model")
+// user
+const userSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true, trim: true },
+    friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    friend_requests: [{
+        from: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        date: { type: Date, default: Date.now }
+    }],
+    high_score: { type: mongoose.Schema.Types.ObjectId, ref: 'Scores' },
+    last_online: Date,
+}, { timestamps: true })
+models.User = mongoose.model('User', userSchema)
+console.log("created user model")
 
-  export default models;
+// scores
+const scoresSchema = new mongoose.Schema({
+    username: { type: String, required: true, trim: true },
+    score: { type: Number, required: true, min: 0 },
+    date: { type: Date, default: Date.now },
+})
+models.Scores = mongoose.model('Scores', scoresSchema)
+console.log("created scores model")
+
+
+// math problems
+const mathProblemSchema = new mongoose.Schema({
+    problem: { type: String, required: true },
+    answer: { type: Number, required: true },
+})
+models.MathProblem = mongoose.model('MathProblem', mathProblemSchema)
+console.log("created math problem model")
+
+export default models;

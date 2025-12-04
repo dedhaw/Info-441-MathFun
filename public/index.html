@@ -1,3 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MathFun Sprint</title>
+    <style>
+      :root {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: #0f172a;
+        background-color: #f8fafc;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: linear-gradient(180deg, #e0f2fe 0%, #ffffff 60%);
+      }
+
+      main {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem 4rem;
+      }
+
+      h1 {
+        text-align: center;
+        font-size: 2.5rem;
+        margin-bottom: 0.25rem;
+      }
+
+      p.subtitle {
+        text-align: center;
+        margin-top: 0;
+        color: #475569;
+      }
+
+      .card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.75rem;
+        margin-top: 1.25rem;
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
+      }
+
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        text-align: center;
+      }
+
+      .status-grid div {
+        background: #eff6ff;
+        border-radius: 12px;
+        padding: 0.85rem;
+        font-size: 0.9rem;
+        color: #1e3a8a;
+      }
+
+      .status-grid span {
+        display: block;
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 0.25rem;
+        font-weight: 600;
+      }
+
+      input {
+        width: 100%;
+        padding: 0.75rem 0.9rem;
+        font-size: 1rem;
+        border-radius: 10px;
+        border: 1px solid #cbd5f5;
+        margin-bottom: 1rem;
+      }
+
+      button {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        border: none;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.15s ease;
+        background: #2563eb;
+        color: white;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      #problem-card {
+        text-align: center;
+      }
+
+      #problem-text {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 1rem 0;
+      }
+
+      .flex-row {
+        display: flex;
+        gap: 0.75rem;
+      }
+
+      .flex-row button {
+        width: auto;
+        padding: 0 1.5rem;
+      }
+
+      #feedback {
+        min-height: 1.25rem;
+        margin-top: 0.75rem;
+        text-align: center;
+        font-weight: 600;
+      }
+
+      .feedback-success {
+        color: #16a34a;
+      }
+
+      .feedback-error {
+        color: #dc2626;
+      }
+
+      .feedback-info {
+        color: #2563eb;
+      }
+
+      #summary {
+        margin-top: 1rem;
+        text-align: center;
+      }
+
+      .hidden {
+        display: none;
+      }
+    </style>
+    <script src="javascripts/index.js" type="module" defer></script>
+  </head>
+  <body>
+    <main>
+      <h1>MathFun Sprint</h1>
+      <p class="subtitle">Answer as many questions as you can in 45 seconds.</p>
+
+      <section class="card">
+        <div class="status-grid">
+          <div>
+            Timer
+            <span id="timer-display">45s</span>
+          </div>
+          <div>
+            Score
+            <span id="score-display">0</span>
+          </div>
+          <div>
+            Accuracy
+            <span id="accuracy-display">0%</span>
+          </div>
+          <div>
+            Best Score
+            <span id="best-score-display">--</span>
+          </div>
+        </div>
+        <label for="username-input">Username</label>
+        <input
+          id="username-input"
+          placeholder="Enter a username to track your scores"
+          autocomplete="off"
+        />
+        <button id="start-game-btn">Start 45-Second Sprint</button>
+      </section>
+
+      <section id="problem-card" class="card hidden">
+        <p id="problem-text">Press start to get your first question.</p>
+        <div class="flex-row">
+          <input
+            id="answer-input"
+            type="number"
+            placeholder="Enter answer"
+            autocomplete="off"
+          />
+          <button id="submit-answer-btn">Submit</button>
+        </div>
+        <p id="feedback"></p>
+        <button id="skip-problem-btn">Skip Problem</button>
+      </section>
+
+      <section id="summary-card" class="card hidden">
+        <h2>Round summary</h2>
+        <p id="round-score"></p>
+        <p id="round-accuracy"></p>
+        <button id="play-again-btn">Play Again</button>
+      </section>
+    </main>
+  </body>
 <html>
 <head>
   <title>MathFun</title>
