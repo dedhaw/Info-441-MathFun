@@ -3,6 +3,7 @@ const API = {
     problem: '/game/problem',
     score: '/game/score',
     highScore: '/game/highscore',
+    leaderboard: '/game/leaderboard',
 };
 
 const elements = {
@@ -22,6 +23,10 @@ const elements = {
     summaryScore: document.getElementById('round-score'),
     summaryAccuracy: document.getElementById('round-accuracy'),
     playAgainBtn: document.getElementById('play-again-btn'),
+    totalGames: document.getElementById('total-games'),
+    totalScore: document.getElementById('total-score'),
+    totalWins: document.getElementById('total-wins'),
+    leaderboardList: document.getElementById('leaderboard-list'),
 };
 
 const state = {
@@ -103,6 +108,20 @@ async function fetchHighScore(username) {
     }
 }
 
+async function fetchLeaderboard() {
+    try {
+        const response = await fetch(API.leaderboard);
+        if (!response.ok) throw new Error('Failed to fetch leaderboard');
+        const data = await response.json();
+        elements.leaderboardList.innerHTML = data.leaderboard
+            .map(u => `<li>${u.rank}. ${u.username}: ${u.high_score}</li>`)
+            .join('');
+    } catch (error) {
+        console.error(error);
+        elements.leaderboardList.innerHTML = '<li>Unable to load leaderboard.</li>';
+    }
+}
+
 async function loadProblem() {
     if (state.loadingProblem) return;
     state.loadingProblem = true;
@@ -155,7 +174,9 @@ async function startGame() {
     state.username = username;
     resetState();
     toggleGameUI(true);
+    await fetchLeaderboard();
     await fetchHighScore(username);
+    await fetchLifetimeStats(username);
     await loadProblem();
     if (!state.currentProblem) {
         toggleGameUI(false);
@@ -197,6 +218,10 @@ async function submitScore() {
             elements.bestScore.textContent = data.highScore;
         } else {
             await fetchHighScore(state.username);
+        }
+        if (data.lifetime) {
+            displayLifetimeStats(data.lifetime);
+            await fetchLeaderboard();
         }
     } catch (error) {
         console.error(error);
@@ -246,6 +271,29 @@ function handleAnswerKey(event) {
     if (event.key === 'Enter') {
         event.preventDefault();
         processAnswer();
+    }
+}
+
+function displayLifetimeStats(stats) {
+    elements.totalGames.textContent = stats.total_games ?? 0;
+    elements.totalScore.textContent = stats.total_score ?? 0;
+    elements.totalWins.textContent = stats.total_wins ?? 0;
+}
+
+async function fetchLifetimeStats(username) {
+    if (!username) return;
+    try {
+        const response = await fetch(`${API.highScore}?username=${encodeURIComponent(username)}`);
+        if (!response.ok) {
+            displayLifetimeStats({ total_games: 0, total_score: 0, total_wins: 0 });
+            return;
+        }
+        const data = await response.json();
+        const lifetime = data.lifetime ?? { total_games: 0, total_score: 0, total_wins: 0 };
+        displayLifetimeStats(lifetime);
+    } catch (err) {
+        console.error(err);
+        displayLifetimeStats({ total_games: 0, total_score: 0, total_wins: 0 });
     }
 }
 

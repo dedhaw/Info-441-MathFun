@@ -59,18 +59,23 @@ router.post('/score', async (req, res) => {
             }
         }
 
+        user.lifetime.total_games = (user.lifetime.total_games || 0) + 1;
+        user.lifetime.total_score = (user.lifetime.total_score || 0) + parsedScore;
+
         let highScoreUpdated = false;
         if (parsedScore > previousHighScore) {
             user.high_score = scoreDoc._id;
-            await user.save();
             highScoreUpdated = true;
         }
+
+        await user.save();
 
         return res.status(201).json({
             message: 'Score recorded',
             scoreId: scoreDoc._id,
             highScoreUpdated,
             highScore: highScoreUpdated ? parsedScore : previousHighScore,
+            lifetime: user.lifetime,
         });
     } catch (error) {
         console.error('Error saving score:', error);
@@ -110,6 +115,29 @@ router.get('/highscore', async (req, res) => {
         return res.status(500).json({ message: 'Failed to fetch high score' });
     }
 });
+
+router.get('/leaderboard', async (req, res) => {
+    try {
+        const users = await req.models.User.find({})
+            .populate('high_score')
+            .lean();
+
+        const leaderboard = users
+            .map(u => ({
+                username: u.username,
+                high_score: u.high_score?.score ?? 0,
+            }))
+            .sort((a, b) => b.high_score - a.high_score)
+            .slice(0, 20)
+            .map((u, idx) => ({ ...u, rank: idx + 1 }));
+
+        res.json({ leaderboard });
+    } catch (error) {
+        console.error('Error fetching leaderboard:', error);
+        res.status(500).json({ message: 'Failed to fetch leaderboard' });
+    }
+});
+
 
 export default router;
 

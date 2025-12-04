@@ -18,6 +18,11 @@ const userSchema = new mongoose.Schema({
     }],
     high_score: { type: mongoose.Schema.Types.ObjectId, ref: 'Scores' },
     last_online: Date,
+    lifetime: {
+        total_games: { type: Number, default: 0 },
+        total_score: { type: Number, default: 0 },
+        total_wins: { type: Number, default: 0 }
+    }
 }, { timestamps: true })
 models.User = mongoose.model('User', userSchema)
 console.log("created user model")
