@@ -1,17 +1,229 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <title>MathFun</title>
-  <link rel="stylesheet" href="/stylesheets/style.css">
-  <script defer src="javascripts/index.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MathFun Sprint</title>
+  <style>
+    :root {
+      --bg: #f7f9fc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #475569;
+      --primary: #2563eb;
+      --success: #16a34a;
+      --error: #dc2626;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #e8f0ff 0%, #ffffff 60%);
+      min-height: 100vh;
+    }
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 3rem;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: 2.25rem;
+      letter-spacing: -0.02em;
+    }
+    .nav-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    a.button, button.button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.6rem 0.9rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s ease;
+    }
+    a.button.primary, button.button.primary {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    a.button:hover, button.button:hover { transform: translateY(-1px); }
+    p.subtitle {
+      margin: 0 0 1rem 0;
+      color: var(--muted);
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+      margin-top: 1rem;
+    }
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.75rem;
+      text-align: center;
+    }
+    .status-grid div {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 0.85rem;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+    .status-grid span {
+      display: block;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 0.15rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-weight: 600;
+    }
+    input {
+      width: 100%;
+      padding: 0.75rem 0.9rem;
+      font-size: 1rem;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      margin-bottom: 1rem;
+    }
+    button {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s ease;
+      background: var(--primary);
+      color: white;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #problem-card { text-align: center; }
+    #problem-text {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin: 1rem 0;
+    }
+    .flex-row { display: flex; gap: 0.75rem; }
+    .flex-row button { width: auto; padding: 0 1.35rem; }
+    #feedback {
+      min-height: 1.25rem;
+      margin-top: 0.75rem;
+      text-align: center;
+      font-weight: 600;
+    }
+    .feedback-success { color: var(--success); }
+    .feedback-error { color: var(--error); }
+    .feedback-info { color: var(--primary); }
+    .hidden { display: none; }
+    ul {
+      padding-left: 1rem;
+    }
+    pre {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 0.75rem;
+      border-radius: 10px;
+    }
+    #leaderboard-list {
+      list-style: none;
+      padding-left: 0;
+      margin: 0;
+      display: grid;
+      gap: 0.5rem;
+    }
+    .leaderboard-item {
+      display: grid;
+      grid-template-columns: 38px 1fr auto;
+      align-items: center;
+      gap: 0.75rem;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0.75rem 0.95rem;
+      font-weight: 600;
+    }
+    .leaderboard-rank {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: #e0e7ff;
+      color: #1e3a8a;
+      flex-shrink: 0;
+    }
+    .leaderboard-name { color: #0f172a; }
+    .leaderboard-score {
+      color: #0f172a;
+      padding: 0.3rem 0.55rem;
+      border-radius: 8px;
+      background: #e5edff;
+      min-width: 44px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .truncate {
+      max-width: 180px;
+      display: inline-block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+    .col-main, .col-side { display: grid; gap: 1rem; }
+    @media (max-width: 640px) {
+      header { flex-direction: column; align-items: flex-start; }
+      .flex-row { flex-direction: column; }
+      .flex-row button { width: 100%; }
+      .layout { grid-template-columns: 1fr; }
+      .col-side { order: -1; }
+    }
+  </style>
+  <script src="javascripts/index.js" type="module" defer></script>
 </head>
 <body>
   <main>
-    <section>
-      <h1>MathFun Friends</h1>
+    <header>
       <div>
-        <a href="/signin">Sign In</a>
-        <a href="/signout">Sign Out</a>
-        <button id="refresh-session" type="button">Check Session</button>
+        <h1>MathFun Sprint</h1>
+        <p class="subtitle">Answer as many questions as you can in 45 seconds.</p>
       </div>
       <p id="user-info">Not signed in</p>
       <div>
