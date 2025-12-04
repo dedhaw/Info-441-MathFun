@@ -11,6 +11,9 @@ console.log("connected to mongodb")
 // user
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true, trim: true },
+    authId: { type: String, unique: true, sparse: true },
+    displayName: { type: String, trim: true },
+    email: { type: String, trim: true },
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     friend_requests: [{
         from: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -30,6 +33,7 @@ console.log("created user model")
 // scores
 const scoresSchema = new mongoose.Schema({
     username: { type: String, required: true, trim: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     score: { type: Number, required: true, min: 0 },
     date: { type: Date, default: Date.now },
 })

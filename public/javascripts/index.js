@@ -11,7 +11,6 @@ const elements = {
     score: document.getElementById('score-display'),
     accuracy: document.getElementById('accuracy-display'),
     bestScore: document.getElementById('best-score-display'),
-    usernameInput: document.getElementById('username-input'),
     startBtn: document.getElementById('start-game-btn'),
     problemCard: document.getElementById('problem-card'),
     summaryCard: document.getElementById('summary-card'),
@@ -39,6 +38,14 @@ const state = {
     attempts: 0,
     correct: 0,
     loadingProblem: false,
+    waitingForStart: false,
+};
+
+const socketState = {
+    ws: null,
+    ready: false,
+    pendingProblem: null,
+    pendingReject: null,
 };
 
 function setFeedback(message = '', variant = 'info') {
@@ -126,19 +133,15 @@ async function loadProblem() {
     if (state.loadingProblem) return;
     state.loadingProblem = true;
     try {
-        const response = await fetch(API.problem);
-        if (!response.ok) {
-            throw new Error('Failed to fetch problem');
-        }
-        const data = await response.json();
-        state.currentProblem = data;
-        elements.problemText.textContent = data.problem;
-        elements.answerInput.value = '';
-        elements.answerInput.focus();
-        setFeedback('New problem ready!', 'info');
+        await requestProblem();
     } catch (error) {
         console.error(error);
-        setFeedback('Unable to load a problem. Please try again.', 'error');
+        try {
+            await fetchHttpProblem();
+        } catch (err) {
+            console.error(err)
+            setFeedback('Unable to load a problem. Please try again.', 'error');
+        }
     } finally {
         state.loadingProblem = false;
     }
@@ -156,7 +159,6 @@ function startTimer() {
 }
 
 function toggleGameUI(active) {
-    state.gameActive = active;
     elements.problemCard.classList.toggle('hidden', !active);
     elements.summaryCard.classList.add('hidden');
     elements.answerInput.disabled = !active;
@@ -166,25 +168,32 @@ function toggleGameUI(active) {
 }
 
 async function startGame() {
-    const username = elements.usernameInput.value.trim();
-    if (!username) {
-        setFeedback('Enter a username first.', 'error');
+    if (!authState.authenticated || !authState.username) {
+        setFeedback('Sign in to start the game.', 'error');
         return;
     }
-    state.username = username;
+    state.username = authState.username;
     resetState();
     toggleGameUI(true);
-    await fetchLeaderboard();
-    await fetchHighScore(username);
-    await fetchLifetimeStats(username);
-    await loadProblem();
-    if (!state.currentProblem) {
-        toggleGameUI(false);
-        return;
-    }
+    state.waitingForStart = true;
+    elements.problemText.textContent = 'Click in the answer box to begin.';
+    setFeedback('Click in the box to start your 45 seconds.', 'info');
+    await fetchHighScore(state.username);
+}
+
+async function beginRoundIfWaiting() {
+    if (!state.waitingForStart) return;
+    state.waitingForStart = false;
     state.gameActive = true;
     setFeedback('Go time! Answer as fast as you can.', 'info');
+    elements.problemText.textContent = 'Loading problem...';
     startTimer();
+    try {
+        await loadProblem();
+    } catch (err) {
+        console.error(err);
+        endGame('Could not start the game. Please try again.');
+    }
 }
 
 function showSummary(message) {
@@ -195,6 +204,29 @@ function showSummary(message) {
         : 0;
     elements.summaryAccuracy.textContent = `Accuracy: ${accuracy}%`;
     elements.summaryCard.querySelector('h2').textContent = message;
+}
+
+function handleIncomingProblem(data) {
+    if (!data) return
+    state.currentProblem = data
+    elements.problemText.textContent = data.problem
+    elements.answerInput.value = ''
+    elements.answerInput.focus()
+    setFeedback('New problem ready!', 'info')
+    if (socketState.pendingProblem) {
+        socketState.pendingProblem()
+        socketState.pendingProblem = null
+        socketState.pendingReject = null
+    }
+}
+
+async function fetchHttpProblem() {
+    const response = await fetch('/game/problem')
+    if (!response.ok) {
+        throw new Error('HTTP problem fetch failed')
+    }
+    const data = await response.json()
+    handleIncomingProblem(data)
 }
 
 async function submitScore() {
@@ -297,9 +329,76 @@ async function fetchLifetimeStats(username) {
     }
 }
 
+function ensureSocket() {
+    if (socketState.ready && socketState.ws?.readyState === WebSocket.OPEN) {
+        return Promise.resolve(socketState.ws)
+    }
+    return new Promise((resolve, reject) => {
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+        const ws = new WebSocket(`${protocol}://${window.location.host}/ws?username=${encodeURIComponent(authState.username || 'guest')}`)
+        socketState.ws = ws
+
+        const cleanup = () => {
+            ws.removeEventListener('open', onOpen)
+            ws.removeEventListener('error', onError)
+        }
+
+        const onOpen = () => {
+            socketState.ready = true
+            cleanup()
+            resolve(ws)
+        }
+        const onError = (err) => {
+            socketState.ready = false
+            cleanup()
+            reject(err)
+        }
+
+        ws.addEventListener('open', onOpen)
+        ws.addEventListener('error', onError)
+
+        ws.addEventListener('close', () => {
+            socketState.ready = false
+        })
+
+        ws.addEventListener('message', (event) => {
+            try {
+                const msg = JSON.parse(event.data)
+                if (msg.type === 'problem' && msg.payload) {
+                    handleIncomingProblem(msg.payload)
+                }
+            } catch (err) {
+                console.error('bad ws message', err)
+            }
+        })
+    })
+}
+
+function requestProblem() {
+    return new Promise(async (resolve, reject) => {
+        try {
+            await ensureSocket()
+            socketState.pendingProblem = resolve
+            socketState.pendingReject = reject
+            socketState.ws.send(JSON.stringify({ type: 'problem_request' }))
+            setTimeout(() => {
+                if (socketState.pendingProblem === resolve) {
+                    socketState.pendingProblem = null
+                    socketState.pendingReject = null
+                    reject(new Error('Timed out waiting for problem'))
+                }
+            }, 5000)
+        } catch (err) {
+            reject(err)
+        }
+    })
+}
+
 elements.startBtn.addEventListener('click', startGame);
 elements.submitBtn.addEventListener('click', processAnswer);
 elements.answerInput.addEventListener('keydown', handleAnswerKey);
+elements.answerInput.addEventListener('focus', beginRoundIfWaiting);
+elements.answerInput.addEventListener('click', beginRoundIfWaiting);
 elements.skipBtn.addEventListener('click', skipProblem);
 elements.playAgainBtn.addEventListener('click', () => {
     elements.summaryCard.classList.add('hidden');
@@ -307,3 +406,196 @@ elements.playAgainBtn.addEventListener('click', () => {
     setFeedback('Press start when you are ready for another round.', 'info');
 });
 
+const authSections = document.querySelectorAll('[data-auth-section]')
+const loginPrompt = document.getElementById('login-prompt')
+const userInfo = document.getElementById('user-info')
+const sessionButton = document.getElementById('refresh-session')
+const signInLink = document.getElementById('signin-link')
+const signOutLink = document.getElementById('signout-link')
+const statusLog = document.getElementById('status-log')
+const searchForm = document.getElementById('search-form')
+const searchInput = document.getElementById('search-input')
+const searchResults = document.getElementById('search-results')
+const friendsList = document.getElementById('friends-list')
+const refreshFriendsButton = document.getElementById('refresh-friends')
+let authState = { authenticated: false, username: null }
+
+const writeStatus = (message) => {
+  if (statusLog) {
+    const timestamp = new Date().toLocaleTimeString()
+    statusLog.textContent = `[${timestamp}] ${message}`
+  }
+}
+
+const renderFriends = (items) => {
+  if (!friendsList) return
+  friendsList.innerHTML = ''
+  items.forEach((item) => {
+    const li = document.createElement('li')
+    li.textContent = item
+    friendsList.appendChild(li)
+  })
+}
+
+const renderSearchResults = (users) => {
+  if (!searchResults) return
+  searchResults.innerHTML = ''
+  users.forEach((user) => {
+    const li = document.createElement('li')
+    li.style.display = 'flex'
+    li.style.alignItems = 'center'
+    li.style.justifyContent = 'space-between'
+    const name = document.createElement('span')
+    name.textContent = user.username
+    const addBtn = document.createElement('button')
+    addBtn.textContent = 'Add Friend'
+    addBtn.type = 'button'
+    addBtn.dataset.username = user.username
+    li.appendChild(name)
+    li.appendChild(addBtn)
+    searchResults.appendChild(li)
+  })
+}
+
+const fetchFriends = async () => {
+  if (!friendsList) {
+    return
+  }
+  if (!authState.authenticated) {
+    writeStatus('Sign in to view friends')
+    return
+  }
+  const username = authState.username
+  if (!username) {
+    writeStatus('Missing username')
+    return
+  }
+  try {
+    const response = await fetch(`/users/${encodeURIComponent(username)}/friends`, {
+      credentials: 'include'
+    })
+    if (!response.ok) {
+      throw new Error('Unable to fetch friends')
+    }
+    const data = await response.json()
+    renderFriends(data.friends.map((friend) => friend.username))
+    writeStatus(`Loaded ${data.friends.length} friends`)
+  } catch (err) {
+    writeStatus(err.message)
+  }
+}
+
+if (searchForm && searchInput) {
+  searchForm.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    const query = searchInput.value.trim()
+    if (!query) {
+      writeStatus('Enter a username to search')
+      return
+    }
+    try {
+      const response = await fetch(`/users/search?username=${encodeURIComponent(query)}`, {
+        credentials: 'include'
+      })
+      if (!response.ok) {
+        throw new Error('Search failed')
+      }
+      const data = await response.json()
+      renderSearchResults(data.users || [])
+      writeStatus(`Found ${data.users.length} user(s)`)
+    } catch (err) {
+      writeStatus(err.message)
+    }
+  })
+}
+
+if (searchResults) {
+  searchResults.addEventListener('click', async (event) => {
+    if (!(event.target instanceof HTMLButtonElement)) return
+    const friendUsername = event.target.dataset.username
+    if (!friendUsername) return
+    if (!authState.authenticated) {
+      writeStatus('Sign in to add friends')
+      return
+    }
+    const username = authState.username
+    try {
+      const response = await fetch(`/users/${encodeURIComponent(username)}/friends`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ friendUsername })
+      })
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to add friend')
+      }
+      const data = await response.json()
+      renderFriends(data.friends.map((friend) => friend.username))
+      writeStatus(`Added ${friendUsername}`)
+    } catch (err) {
+      writeStatus(err.message)
+    }
+  })
+}
+
+if (refreshFriendsButton) {
+  refreshFriendsButton.addEventListener('click', () => {
+    fetchFriends()
+  })
+}
+
+const updateAuthView = (authenticated, username) => {
+  authState = { authenticated, username: username || null }
+  authSections.forEach((section) => {
+    section.hidden = !authenticated
+  })
+  if (loginPrompt) {
+    loginPrompt.hidden = authenticated
+  }
+  if (userInfo) {
+    userInfo.textContent = authenticated ? `Signed in as ${username || 'Unknown user'}` : 'Not signed in'
+  }
+  if (signInLink) {
+    signInLink.style.display = authenticated ? 'none' : 'inline-flex'
+  }
+  if (signOutLink) {
+    signOutLink.style.display = authenticated ? 'inline-flex' : 'none'
+  }
+  if (!authenticated) {
+    renderSearchResults([])
+    renderFriends([])
+    state.username = ''
+  } else {
+    state.username = username || ''
+    fetchHighScore(state.username)
+  }
+}
+
+const checkSession = async () => {
+  try {
+    const response = await fetch('/session', { credentials: 'include' })
+    if (!response.ok) {
+      throw new Error('Unable to verify session')
+    }
+    const data = await response.json()
+    updateAuthView(data.authenticated, data.username)
+    writeStatus(data.authenticated ? 'Authenticated' : 'Sign in to continue')
+    if (data.authenticated) {
+      fetchFriends()
+    }
+    return data
+  } catch (err) {
+    updateAuthView(false, null)
+    writeStatus(err.message)
+    return { authenticated: false }
+  }
+}
+
+if (sessionButton) {
+  sessionButton.addEventListener('click', () => {
+    checkSession()
+  })
+}
+
+checkSession()
