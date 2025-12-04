@@ -8,6 +8,8 @@ function applyTheme() {
     return
   }
 
+  console.log(theme)
+
   // set pickers to be current theme
   document.getElementById('bg-color-picker').value = theme.bg_color
   document.getElementById('button-color-picker').value = theme.button_color
