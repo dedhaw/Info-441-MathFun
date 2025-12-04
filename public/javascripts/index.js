@@ -11,6 +11,7 @@ const elements = {
     score: document.getElementById('score-display'),
     accuracy: document.getElementById('accuracy-display'),
     bestScore: document.getElementById('best-score-display'),
+    versusBtn: document.getElementById('versus-btn'),
     startBtn: document.getElementById('start-game-btn'),
     problemCard: document.getElementById('problem-card'),
     summaryCard: document.getElementById('summary-card'),
@@ -39,6 +40,12 @@ const state = {
     correct: 0,
     loadingProblem: false,
     waitingForStart: false,
+    inVersus: false,
+    opponentUsername: '',
+    selfReady: false,
+    opponentReady: false,
+    countdownInterval: null,
+    prepCountdown: 3,
 };
 
 const socketState = {
@@ -181,6 +188,9 @@ async function startGame() {
     }
     state.username = authState.username;
     resetState();
+    state.selfReady = false;
+    state.opponentReady = false;
+    state.prepCountdown = 3;
     toggleGameUI(true);
     state.waitingForStart = true;
     elements.problemText.textContent = 'Click in the answer box to begin.';
@@ -193,17 +203,12 @@ async function startGame() {
 
 async function beginRoundIfWaiting() {
     if (!state.waitingForStart) return;
-    state.waitingForStart = false;
-    state.gameActive = true;
-    setFeedback('Go time! Answer as fast as you can.', 'info');
-    elements.problemText.textContent = 'Loading problem...';
-    startTimer();
-    try {
-        await loadProblem();
-    } catch (err) {
-        console.error(err);
-        endGame('Could not start the game. Please try again.');
+    if (state.inVersus && state.opponentUsername) {
+        markReadyForVersus();
+        return;
     }
+    state.waitingForStart = false;
+    startRoundNow();
 }
 
 function showSummary(message) {
@@ -372,16 +377,25 @@ function ensureSocket() {
             socketState.ready = false
         })
 
-        ws.addEventListener('message', (event) => {
-            try {
-                const msg = JSON.parse(event.data)
-                if (msg.type === 'problem' && msg.payload) {
-                    handleIncomingProblem(msg.payload)
+        if (!ws._listenersBound) {
+            ws.addEventListener('message', (event) => {
+                try {
+                    const msg = JSON.parse(event.data)
+                    if (msg.type === 'problem' && msg.payload) {
+                        handleIncomingProblem(msg.payload)
+                    } else if (msg.type === 'challenge' && msg.payload?.from) {
+                        handleIncomingChallenge(msg.payload.from)
+                    } else if (msg.type === 'challenge_response' && msg.payload) {
+                        handleChallengeResponse(msg.payload)
+                    } else if (msg.type === 'error' && msg.payload?.message) {
+                        setFeedback(msg.payload.message, 'error')
+                    }
+                } catch (err) {
+                    console.error('bad ws message', err)
                 }
-            } catch (err) {
-                console.error('bad ws message', err)
-            }
-        })
+            })
+            ws._listenersBound = true
+        }
     })
 }
 
@@ -405,11 +419,109 @@ function requestProblem() {
     })
 }
 
+function markReadyForVersus() {
+    if (!state.opponentUsername) return
+    state.selfReady = true
+    setFeedback('Ready. Waiting for opponent...', 'info')
+    ensureSocket().then((ws) => {
+        ws.send(JSON.stringify({ type: 'ready', payload: { to: state.opponentUsername } }))
+    }).catch(() => {})
+    checkVersusCountdown()
+}
+
+function checkVersusCountdown() {
+    if (!state.selfReady || !state.opponentReady) return
+    if (state.countdownInterval) return
+    state.prepCountdown = 3
+    elements.problemText.textContent = `Starting in ${state.prepCountdown}...`
+    state.countdownInterval = setInterval(() => {
+        state.prepCountdown -= 1
+        if (state.prepCountdown <= 0) {
+            clearInterval(state.countdownInterval)
+            state.countdownInterval = null
+            startRoundNow()
+        } else {
+            elements.problemText.textContent = `Starting in ${state.prepCountdown}...`
+        }
+    }, 1000)
+}
+
+function handleReady(fromUser) {
+    if (fromUser === state.opponentUsername) {
+        state.opponentReady = true
+        setFeedback(`${fromUser} is ready.`, 'info')
+        checkVersusCountdown()
+    }
+}
+
+function handleIncomingChallenge(fromUser) {
+    const accept = window.confirm(`${fromUser} challenged you to a match. Accept?`)
+    ensureSocket().then((ws) => {
+        ws.send(JSON.stringify({
+            type: 'challenge_response',
+            payload: { to: fromUser, accept }
+        }))
+    }).catch(() => {})
+    if (accept) {
+        state.inVersus = true
+        state.opponentUsername = fromUser
+        setFeedback(`Accepted challenge from ${fromUser}.`, 'info')
+        state.waitingForStart = false
+        state.gameActive = true
+        toggleGameUI(true)
+        elements.problemText.textContent = 'Loading problem...'
+        startTimer()
+        loadProblem()
+    } else {
+        setFeedback(`Declined challenge from ${fromUser}`, 'error')
+    }
+}
+
+function handleChallengeResponse(payload) {
+    if (payload.accept) {
+        state.inVersus = true
+        state.opponentUsername = payload.from
+        setFeedback(`${payload.from} accepted your challenge!`, 'success')
+        state.waitingForStart = false
+        state.gameActive = true
+        toggleGameUI(true)
+        elements.problemText.textContent = 'Loading problem...'
+        startTimer()
+        loadProblem()
+    } else {
+        setFeedback(`${payload.from} declined your challenge.`, 'error')
+    }
+}
+
+async function sendChallenge() {
+    if (!authState.authenticated || !authState.username) {
+        setFeedback('Sign in to play versus.', 'error')
+        return
+    }
+    const friend = (window.prompt('Enter friend username to challenge') || '').trim()
+    if (!friend) return
+    try {
+        const ws = await ensureSocket()
+        ws.send(JSON.stringify({ type: 'challenge', payload: { to: friend } }))
+        setFeedback(`Challenge sent to ${friend}`, 'info')
+        state.inVersus = true
+        state.opponentUsername = friend
+        state.selfReady = false
+        state.opponentReady = false
+    } catch (err) {
+        setFeedback('Could not send challenge.', 'error')
+    }
+}
+
 elements.startBtn.addEventListener('click', startGame);
+if (elements.versusBtn) {
+    elements.versusBtn.addEventListener('click', sendChallenge);
+}
 elements.submitBtn.addEventListener('click', processAnswer);
 elements.answerInput.addEventListener('keydown', handleAnswerKey);
 elements.answerInput.addEventListener('focus', beginRoundIfWaiting);
 elements.answerInput.addEventListener('click', beginRoundIfWaiting);
+elements.answerInput.addEventListener('input', beginRoundIfWaiting);
 elements.skipBtn.addEventListener('click', skipProblem);
 elements.playAgainBtn.addEventListener('click', () => {
     elements.summaryCard.classList.add('hidden');
@@ -581,6 +693,7 @@ const updateAuthView = (authenticated, username) => {
     state.username = username || ''
     fetchHighScore(state.username)
     fetchLeaderboard()
+    ensureSocket().catch(() => {})
   }
 }
 

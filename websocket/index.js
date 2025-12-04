@@ -8,6 +8,7 @@ const buildFallbackProblem = () => {
 
 export function setupWebsocket(server, models) {
   const wss = new WebSocketServer({ server, path: '/ws' })
+  const clients = new Map() // username -> ws
 
   const sendProblem = async (ws) => {
     try {
@@ -25,15 +26,43 @@ export function setupWebsocket(server, models) {
 
   wss.on('connection', (ws, req) => {
     const params = new URL(req.url, `http://${req.headers.host}`).searchParams
-    ws.username = params.get('username') || 'guest'
+    ws.username = (params.get('username') || 'guest').trim()
+    if (ws.username) {
+      clients.set(ws.username, ws)
+    }
     ws.on('message', (data) => {
       try {
         const msg = JSON.parse(data.toString())
         if (msg.type === 'problem_request') {
           sendProblem(ws)
+        } else if (msg.type === 'challenge' && msg.payload?.to) {
+          const target = clients.get(msg.payload.to)
+          if (target) {
+            target.send(JSON.stringify({ type: 'challenge', payload: { from: ws.username } }))
+          } else {
+            ws.send(JSON.stringify({ type: 'error', payload: { message: 'friend not online' } }))
+          }
+        } else if (msg.type === 'challenge_response' && msg.payload?.to) {
+          const target = clients.get(msg.payload.to)
+          if (target) {
+            target.send(JSON.stringify({ type: 'challenge_response', payload: { from: ws.username, accept: msg.payload.accept } }))
+          }
+        } else if (msg.type === 'ready' && msg.payload?.to) {
+          const target = clients.get(msg.payload.to)
+          if (target) {
+            target.send(JSON.stringify({ type: 'ready', payload: { from: ws.username } }))
+          } else {
+            ws.send(JSON.stringify({ type: 'error', payload: { message: 'friend not online' } }))
+          }
         }
       } catch (err) {
         ws.send(JSON.stringify({ type: 'error', payload: { message: 'invalid message' } }))
+      }
+    })
+
+    ws.on('close', () => {
+      if (ws.username) {
+        clients.delete(ws.username)
       }
     })
   })
