@@ -204,4 +204,57 @@
       </section>
     </main>
   </body>
+<html>
+<head>
+  <title>MathFun</title>
+  <link rel="stylesheet" href="/stylesheets/style.css">
+  <script defer src="javascripts/index.js"></script>
+</head>
+<body>
+  <main>
+    <section>
+      <h1>MathFun Friends</h1>
+      <div>
+        <a href="/signin">Sign In</a>
+        <a href="/signout">Sign Out</a>
+        <button id="refresh-session" type="button">Check Session</button>
+      </div>
+      <p id="user-info">Not signed in</p>
+    </section>
+    <section id="login-prompt">
+      <p>Sign in to search users and manage friends.</p>
+    </section>
+    <section data-auth-section hidden>
+      <h2>Search Users</h2>
+      <form id="search-form">
+        <label>
+          Username search
+          <input type="text" id="search-input" required>
+        </label>
+        <button type="submit">Search</button>
+      </form>
+      <ul id="search-results"></ul>
+    </section>
+    <section data-auth-section hidden>
+      <h2>Manage Friends</h2>
+      <form id="friends-form">
+        <label>
+          Your username
+          <input type="text" id="self-username" required>
+        </label>
+        <label>
+          Friend username
+          <input type="text" id="friend-username" required>
+        </label>
+        <button type="submit">Add Friend</button>
+      </form>
+      <button id="refresh-friends">Refresh Friends</button>
+      <ul id="friends-list"></ul>
+    </section>
+    <section data-auth-section hidden>
+      <h2>Status</h2>
+      <pre id="status-log"></pre>
+    </section>
+  </main>
+</body>
 </html>
