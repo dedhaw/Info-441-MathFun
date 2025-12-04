@@ -279,6 +279,7 @@ function endGame(message) {
     setFeedback(message, 'info');
     showSummary(message);
     submitScore();
+    fetchLeaderboard();
 }
 
 function processAnswer() {
