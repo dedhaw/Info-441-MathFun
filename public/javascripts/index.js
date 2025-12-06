@@ -771,6 +771,8 @@ async function applyTheme() {
   }
 
   // set pickers to be current theme
+
+
   const bgPicker = document.getElementById('bg-color-picker');
   const buttonPicker = document.getElementById('button-color-picker');
   const textPicker = document.getElementById('text-color-picker');
@@ -796,22 +798,28 @@ async function getTheme() {
 
   // first check cache for existing theme
   let theme = sessionStorage.getItem('theme')
-  if (!theme) {
-
+  if (!theme || Object.keys(theme).length == 0) {
+    console.log('no')
     // fetch from server
     const username = sessionStorage.getItem('username')
     if (!username) {
       return
     }
-    let theme = await fetch(`/users/theme?username=${encodeURIComponent(username)}`)
-    if (!theme) {
-      return
+
+    try {
+      theme = await fetch(`/users/theme?username=${encodeURIComponent(username)}`)
+
+      theme = await theme.json()
+      console.log(theme)
+
+      // cache found theme
+      sessionStorage.setItem('theme', JSON.stringify(theme))
+      return theme
+
+    } catch (error) {
+      console.error('error fetching theme: ', error)
+      writeStatus('Unable to load theme')
     }
-
-    theme = await theme.json()
-
-    // cache found theme
-    sessionStorage.setItem('theme', JSON.stringify(theme))
   }
   return JSON.parse(theme)
 }
@@ -821,37 +829,41 @@ async function setTheme() {
   if (!username) {
     return
   }
-
+  try {
   // get input values
-  const bgColor = document.getElementById('bg-color-picker').value
-  const buttonColor = document.getElementById('button-color-picker').value
-  const textColor = document.getElementById('text-color-picker').value
+    const bgColor = document.getElementById('bg-color-picker').value
+    const buttonColor = document.getElementById('button-color-picker').value
+    const textColor = document.getElementById('text-color-picker').value
 
-  const theme = {
-    bg_color: bgColor,
-    button_color: buttonColor,
-    text_color: textColor
-  }
+    const theme = {
+      bg_color: bgColor,
+      button_color: buttonColor,
+      text_color: textColor
+    }
 
-  // save user theme
-  await fetch(`/users/theme`, {
-    method: 'POST',
-    headers: {  'Content-Type': 'application/json'  },
-    body: JSON.stringify({
-      username,
-      theme: {
-        bg_color: bgColor,
-        button_color: buttonColor,
-        text_color: textColor
-      }
+    // save user theme
+    await fetch(`/users/theme`, {
+      method: 'POST',
+      headers: {  'Content-Type': 'application/json'  },
+      body: JSON.stringify({
+        username,
+        theme: {
+          bg_color: bgColor,
+          button_color: buttonColor,
+          text_color: textColor
+        }
+      })
     })
-  })
 
-  // save to cache
-  sessionStorage.setItem('theme', JSON.stringify(theme))
+    // save to cache
+    sessionStorage.setItem('theme', JSON.stringify(theme))
 
-  // reapply theme after
-  applyTheme()
+    // reapply theme after
+    applyTheme()
+  } catch (error) {
+    console.error('error saving theme:', error);
+    writeStatus('Could not save theme. Please try again.')
+  }
 }
 
 checkSession()
