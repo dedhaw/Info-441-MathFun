@@ -799,7 +799,6 @@ async function getTheme() {
   // first check cache for existing theme
   let theme = sessionStorage.getItem('theme')
   if (!theme || Object.keys(theme).length == 0) {
-    console.log('no')
     // fetch from server
     const username = sessionStorage.getItem('username')
     if (!username) {
@@ -810,7 +809,6 @@ async function getTheme() {
       theme = await fetch(`/users/theme?username=${encodeURIComponent(username)}`)
 
       theme = await theme.json()
-      console.log(theme)
 
       // cache found theme
       sessionStorage.setItem('theme', JSON.stringify(theme))
